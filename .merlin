@@ -1,0 +1,16 @@
+####{BSB GENERATED: NO EDIT
+B lib/bs
+FLG -open BsGoogleMaps
+FLG -ppx '/home/baylinz/.npm-global/lib/node_modules/bs-platform/lib/reactjs_jsx_ppx_2.exe'
+FLG -ppx /home/baylinz/.npm-global/lib/node_modules/bs-platform/lib/bsppx.exe
+S /home/baylinz/Development/bs-google-maps/test/node_modules/bs-google-maps/node_modules/bs-platform/lib/ocaml
+B /home/baylinz/Development/bs-google-maps/test/node_modules/bs-google-maps/node_modules/bs-platform/lib/ocaml
+FLG -nostdlib -color always
+FLG -w -30-40+6+7+27+32..39+44+45+101
+S /home/baylinz/Development/bs-google-maps/test/node_modules/bs-google-maps/node_modules/bs-webapi/lib/ocaml
+B /home/baylinz/Development/bs-google-maps/test/node_modules/bs-google-maps/node_modules/bs-webapi/lib/ocaml
+S /home/baylinz/Development/bs-google-maps/test/node_modules/bs-google-maps/node_modules/reason-react/lib/ocaml
+B /home/baylinz/Development/bs-google-maps/test/node_modules/bs-google-maps/node_modules/reason-react/lib/ocaml
+S src
+B lib/bs/src
+####BSB GENERATED: NO EDIT}
