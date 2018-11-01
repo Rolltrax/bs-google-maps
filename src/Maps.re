@@ -24,8 +24,8 @@ module DirectionsService {
 };
 
 type location = {.
-  "lat": int,
-  "lng": int
+  "lat": float,
+  "lng": float
 };
 
 type waypoint = {.

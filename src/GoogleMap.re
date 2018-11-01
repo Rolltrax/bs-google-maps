@@ -4,19 +4,11 @@ type state = {
   /* We need a div for Google Maps to bind to. This provides it. */
   mapRef: ref(option(Dom.element)),
   map: option(Maps.Map.t),
-  origin: option(string),
-  destination: option(string),
-  travelMode: string,
-  waypoints: option(array(waypoint)),
-  directionsDisplay: option(Maps.DirectionsDisplay.t),
-  directionsService: option(Maps.DirectionsService.t)
 };
 
+
 type action = 
-  | UpdateMap(Maps.Map.t)
-  | UpdateMapWithDirectionsDisplayAndService(Maps.Map.t, Maps.DirectionsDisplay.t, Maps.DirectionsService.t)
-  | UpdateDirectionsDisplay(Maps.DirectionsDisplay.t)
-  | UpdateDirectionsService(Maps.DirectionsService.t);
+  | UpdateMap(Maps.Map.t);
 
 /* Function to be called by the main div */
 let setMapRef = (theRef, {ReasonReact.state}) => {
@@ -34,41 +26,24 @@ let make = (
   ~zoom=4, 
   /* Center is Kansas City, MO, a good central place in the US */
   ~center=({"lat": 38.889931, "lng": -94.565559}),
-  /* 
-    Whether or not we will be using the Directions API.
-    Creates a DirectionsService and DirectionsRender.
-  */
-  ~enableDirections=false,
-  /* Whether or not to consider waypoints in directions */
-  ~enableWaypoints=false,
-  /* The origin point for directions */
-  ~origin=?,
-  /* The destination point for directions. */
-  ~destination=?,
-  /* The travel mode for directions. Defaults to driving. */
-  ~travelMode="DRIVING",
-  /* A list of waypoints for directions. */
-  ~waypoints : option(array(waypoint)) = ?,
+  /* Function to be run on the creation of a Map */
+  ~onMapCreated=((map : Map.t) => ()),
+  /* Determines if directions are enabled */
+  ~directionsEnabled=false,
+  /* The next to props are only run if directions are enabled */
+  /* Function to be run on the creation of a DirectionsService */
+  ~onDirectionsServiceCreated=((ds : DirectionsService.t) => ()),
+  /* Function to be run on the creation of a DirectionsDisplay */
+  ~onDirectionsDisplayCreated=((dp : DirectionsDisplay.t) => ()),
   _children
-  ) => {
-  {
+) => {
     ...component,
     initialState: () => {
       mapRef: ref(None : option('a)),
-      map: None,
-      directionsDisplay: None,
-      directionsService: None,
-      origin: origin,
-      destination: destination,
-      travelMode: travelMode,
-      waypoints: waypoints
+      map: None
     },
     reducer: (action : action, state : state) => switch action {
       | UpdateMap(map) => ReasonReact.Update({...state, map: Some(map)})
-      | UpdateMapWithDirectionsDisplayAndService(map, directionsDisplay, directionsService) => 
-        ReasonReact.Update({...state, map: Some(map), directionsDisplay: Some(directionsDisplay), directionsService: Some(directionsService)})
-      | UpdateDirectionsDisplay(directionsDisplay) => ReasonReact.Update({...state, directionsDisplay: Some(directionsDisplay)})
-      | UpdateDirectionsService(directionsService) => ReasonReact.Update({...state, directionsService: Some(directionsService)})
     },
     didMount: (self) => {
       if (!Maps.isGoogleLoaded()) {
@@ -97,15 +72,14 @@ let make = (
                     },
                     ()
                   );
-                  if (enableDirections) {
-                    let directionsService = DirectionsService.create();
+                  map -> onMapCreated;
+                  self.send(UpdateMap(map));
+                  if (directionsEnabled) {
                     let directionsDisplay = DirectionsDisplay.create();
                     directionsDisplay -> DirectionsDisplay.setMap(map);
-                    self.send(
-                      UpdateMapWithDirectionsDisplayAndService(map, directionsDisplay, directionsService)
-                    );
-                  } else {
-                    self.send(UpdateMap(map));
+                    let directionsService = DirectionsService.create();
+                    directionsService -> onDirectionsServiceCreated;
+                    directionsDisplay -> onDirectionsDisplayCreated;
                   };
                   ();
                 }
@@ -116,27 +90,6 @@ let make = (
         ) |> ignore;
       }
     },
-    didUpdate: ({oldSelf, newSelf}) => {  
-      if (enableDirections && newSelf.state.directionsDisplay != None && newSelf.state.directionsService != None) {
-        let directionsService = Belt.Option.getExn(newSelf.state.directionsService);
-        let directionsDisplay = Belt.Option.getExn(newSelf.state.directionsDisplay);
-        let request = {
-          "origin": Js.Nullable.fromOption(origin),
-          "destination": Js.Nullable.fromOption(destination),
-          "travelMode": travelMode,
-          "waypoints": Js.Nullable.fromOption(waypoints),
-          "optimizeWaypoints": enableWaypoints
-        };
-        directionsService -> DirectionsService.route(
-          request,
-          ((result, status) => {
-            if (status == "OK") {
-              directionsDisplay -> DirectionsDisplay.setDirections(result);
-            }
-          })
-        )
-      }
-    },
     render: (self) => {
       <div
         style=ReactDOMRe.Style.make(~height=height, ())
@@ -144,4 +97,3 @@ let make = (
       </div>
     }
   };
-}
