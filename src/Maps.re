@@ -23,6 +23,24 @@ module DirectionsService {
   [@bs.send] external route : (t, Js.t({..}), (Js.t({..}), string) => unit) => unit = "route";
 };
 
+module Autocomplete {
+  type t;
+  [@bs.new] external create : (Dom.element, Js.t({..})) => t = "google.maps.place.Autocomplete";
+  [@bs.send] external getPlace : unit => Js.t({..}) = "getPlace";
+};
+
+type route = {.
+  "legs": array({.
+    "end_address": string,
+    "start_address": string
+  }),
+  "summary": string
+}
+
+type directions = {.
+  "routes": array(route),
+};
+
 type location = {.
   "lat": float,
   "lng": float
@@ -36,7 +54,7 @@ type waypoint = {.
 
 let isGoogleLoaded = [%raw {|
   function() {
-    return typeof google !== "undefined"
+    return typeof google == "object"
   }  
 |}];
 
