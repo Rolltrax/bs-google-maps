@@ -17,6 +17,48 @@ let setMapRef = (theRef, {ReasonReact.state}) => {
 let component = ReasonReact.reducerComponent("GoogleMap");
 
 
+let initMap(
+  ~state,
+  ~sender,
+  ~zoom, 
+  ~center, 
+  ~onMapCreated, 
+  ~directionsEnabled,
+  ~onDirectionsDisplayCreated,
+  ~onDirectionsServiceCreated,
+  ()
+) = {
+  switch (state.mapRef^) {
+    | Some(elt) => {
+      /* Render the map to the div with the zoom and center previously defined */
+      let map = Map.create(
+        ~element=elt,
+        ~options={
+          "zoom": zoom,
+          "center": center,
+        },
+        ()
+      );
+      map -> onMapCreated;
+      sender(UpdateMap(map));
+      /* 
+        If directions are enabled:
+          - create a directions display -> provided onCreate func
+          - create a directions service -> provided onCreate func
+      */
+      if (directionsEnabled) {
+        let directionsDisplay = DirectionsDisplay.create();
+        directionsDisplay -> DirectionsDisplay.setMap(map);
+        let directionsService = DirectionsService.create();
+        directionsService -> onDirectionsServiceCreated;
+        directionsDisplay -> onDirectionsDisplayCreated;
+      };
+      ();
+    }
+    | None => ()
+  };
+};
+
 let make = (
   /* We need an API key to access the maps. See the Maps API Documentation. */
   ~apiKey,
@@ -50,44 +92,40 @@ let make = (
         Js.Promise.(
           /* After it mounted, load the API */
           loadGoogleMapsApi(
-            ~options={"key": apiKey},
+            ~options={
+              "key": apiKey,
+            },
             ()
           )
           |> then_(
             /* A map Js object is created... */
             (maps : Js.t({..})) => {
-              /* 
-                Needless but nessecary statement to get the element from the ref.
-                It's needless because didMount is called **after** render, so
-                we know the ref will contain Some(element).
-              */
-              switch (self.state.mapRef^) {
-                | Some(elt) => {
-                  /* Render the map to the div with the zoom and center previously defined */
-                  let map = Map.create(
-                    ~element=elt,
-                    ~options={
-                      "zoom": zoom,
-                      "center": center
-                    },
-                    ()
-                  );
-                  map -> onMapCreated;
-                  self.send(UpdateMap(map));
-                  if (directionsEnabled) {
-                    let directionsDisplay = DirectionsDisplay.create();
-                    directionsDisplay -> DirectionsDisplay.setMap(map);
-                    let directionsService = DirectionsService.create();
-                    directionsService -> onDirectionsServiceCreated;
-                    directionsDisplay -> onDirectionsDisplayCreated;
-                  };
-                  ();
-                }
-                | None => ()
-              } |> resolve;
+              initMap(
+                ~state=self.state,
+                ~sender=self.send,
+                ~zoom,
+                ~center,
+                ~onMapCreated, 
+                ~directionsEnabled,
+                ~onDirectionsDisplayCreated,
+                ~onDirectionsServiceCreated,
+                ()
+              ) |> resolve;
             }
           )
         ) |> ignore;
+      } else {
+        initMap(
+          ~state=self.state,
+          ~sender=self.send,
+          ~zoom,
+          ~center,
+          ~onMapCreated, 
+          ~directionsEnabled,
+          ~onDirectionsDisplayCreated,
+          ~onDirectionsServiceCreated,
+          ()
+        )
       }
     },
     render: (self) => {
